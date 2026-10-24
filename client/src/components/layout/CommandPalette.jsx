@@ -148,7 +148,8 @@ export function CommandPalette({ open, onOpenChange, onNewLead }) {
               <Command.Item
                 onSelect={() =>
                   runCommand(() => {
-                    window.location.href = `${import.meta.env.VITE_API_URL || ''}/api/v1/leads/export`;
+                    const exportHost = import.meta.env.VITE_API_URL || 'https://swan-assignment-backend.onrender.com';
+                    window.location.href = `${exportHost.replace(/\/+$/, '')}/api/v1/leads/export`;
                   })
                 }
                 className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#EEEEEE] hover:bg-[#FE6A00]/10 hover:text-[#FE6A00] cursor-pointer"
