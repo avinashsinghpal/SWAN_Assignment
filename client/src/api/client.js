@@ -29,6 +29,15 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
+      if (error.response.status === 401) {
+        const url = error.config?.url || '';
+        if (!url.includes('/auth/login') && !url.includes('/auth/register') && !url.includes('/auth/me')) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('swan:unauthorized'));
+          }
+        }
+      }
+
       // Structured API error
       const apiError = error.response.data?.error || {};
       const enriched = new Error(apiError.message || 'An unexpected error occurred.');

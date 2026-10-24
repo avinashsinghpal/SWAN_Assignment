@@ -180,15 +180,23 @@ npm run install:all
 Check `server/.env` (a `.env.example` is also provided):
 ```env
 PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/swan_lms
+NODE_ENV=production
+# MongoDB Atlas Connection URI:
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/swan_lms?retryWrites=true&w=majority
 JWT_SECRET=your_super_secret_jwt_key_here
 JWT_EXPIRES_IN=7d
-COOKIE_SECURE=false
-CLIENT_ORIGIN=http://localhost:5173
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=none
+CLIENT_ORIGIN=https://your-frontend-app.vercel.app
 ```
 
-### 3. Seed Realistic Test Data
+### 3. Verify Database Connection
+Before running the application or seeding data, verify your MongoDB Atlas cluster connectivity and read/write privileges:
+```bash
+npm run verify:db
+```
+
+### 4. Seed Realistic Test Data
 Populate the database with realistic leads, audit events, and user accounts:
 ```bash
 npm run seed
@@ -199,7 +207,12 @@ npm run seed
 - **Sales Specialist 1:** `priya.sales@swandigital.io` / `Sales@1234`
 - **Sales Specialist 2:** `rohan.sales@swandigital.io` / `Sales@1234`
 
-### 4. Running the Development Servers
+### 4. Keyboard Shortcuts
+- `Ctrl/Cmd + K`: Open Command Palette anywhere in the application.
+- `/`: Focus search input on the Leads page (when no input is currently focused).
+- `Esc`: Close any open drawer, modal dialog, or command palette.
+
+### 5. Running the Development Servers
 In two separate terminals:
 ```bash
 # Terminal 1: Backend Server (runs on port 5000)
@@ -240,19 +253,23 @@ SWAN_Assignment/
 ├── package.json              # Root runner scripts
 ├── README.md                 # Complete system documentation
 ├── .gitignore
-├── client/                   # Frontend React + Vite app
+├── client/                   # Frontend React + Vite app (Dark Editorial Design)
 │   ├── index.html
 │   ├── vite.config.js
 │   ├── src/
 │   │   ├── api/              # Axios client and endpoint modules
 │   │   ├── components/
-│   │   │   ├── auth/         # ProtectedRoute guards
-│   │   │   ├── layout/       # AppLayout, Sidebar, TopBar
-│   │   │   ├── leads/        # LeadCard, KanbanBoard, LeadRow, FormDrawer, DetailsModal
-│   │   │   └── ui/           # Button, Input, Select, Badge, Card, Modal, Pagination, Skeleton
+│   │   │   ├── auth/         # AuthShell, PasswordField, PasswordStrength, ProtectedRoute
+│   │   │   ├── dashboard/    # StatCard, ConversionKpi, StatusChart, TrendChart, ServiceChart, FollowUpsPanel, RecentLeads
+│   │   │   ├── landing/      # SplitFlapText, HighlightText, AnimatedNoise, ScrambleText, SoundContext
+│   │   │   ├── layout/       # AppLayout, Sidebar, MobileNav, CommandPalette, RouteErrorBoundary
+│   │   │   ├── leads/        # LeadsToolbar, LeadsTable, LeadCard, LeadFormDrawer, ActivityTimeline, FilterSheet, DeleteLeadDialog
+│   │   │   └── ui/           # Button, Card, DateInput, Dialog, Drawer, EmptyState, ErrorState, FieldWrapper, Input, Kbd, Pagination, SectionHeader, SegmentedControl, Select, Skeleton, StatusTag, Table, Textarea, Toaster, Tooltip
 │   │   ├── context/          # AuthContext, ThemeContext, ToastContext
-│   │   ├── pages/            # LoginPage, RegisterPage, DashboardPage, LeadsPage, UsersPage, SettingsPage
-│   │   └── styles/           # Tailwind v4 globals & custom design tokens
+│   │   ├── hooks/            # useCountUp, useDebounce, useLeadFilters, useMediaQuery, useReducedMotion
+│   │   ├── lib/              # constants, formatters, schemas, cn
+│   │   ├── pages/            # LandingPage, LoginPage, RegisterPage, DashboardPage, LeadsPage, LeadDetailPage, UsersPage, SettingsPage, NotFoundPage
+│   │   └── styles/           # Tailwind v4 globals & editorial tokens
 └── server/                   # Backend Express + MongoDB API
     ├── src/
     │   ├── config/           # Environment config & Swagger definition

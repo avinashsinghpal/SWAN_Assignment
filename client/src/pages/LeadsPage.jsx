@@ -1,433 +1,303 @@
-/**
- * LeadsPage component.
- * Complete Lead Management interface featuring:
- * - Table View and Kanban Board View switcher
- * - Dynamic filtering (search with debouncing, status, service, sort)
- * - CSV Export respecting current active filters and role scoping
- * - Lead creation and editing via slide-over Drawer
- * - Deep Lead Overview & Audit history modal
- * - Safe Delete Confirmation modal
- * - Pagination with customizable page sizes (10, 25, 50)
- */
-
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  LayoutList,
-  Kanban,
-  Download,
-  Plus,
-  Filter,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { leadsApi } from '../api/leads.api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useLeadFilters } from '../hooks/useLeadFilters.js';
+import { SectionHeader } from '../components/ui/SectionHeader.jsx';
 import { Button } from '../components/ui/Button.jsx';
-import { Pagination } from '../components/ui/Pagination.jsx';
+import { TableRowSkeleton } from '../components/ui/Skeleton.jsx';
+import { Table, TableHeader, TableBody } from '../components/ui/Table.jsx';
 import { EmptyState } from '../components/ui/EmptyState.jsx';
-import { TableRowSkeleton, LeadCardSkeleton } from '../components/ui/Skeleton.jsx';
-import { LeadFilters } from '../components/leads/LeadFilters.jsx';
-import { LeadRow } from '../components/leads/LeadRow.jsx';
-import { LeadKanbanBoard } from '../components/leads/LeadKanbanBoard.jsx';
+import { ErrorState } from '../components/ui/ErrorState.jsx';
+import { Pagination } from '../components/ui/Pagination.jsx';
+import { LeadsToolbar } from '../components/leads/LeadsToolbar.jsx';
+import { FilterSheet } from '../components/leads/FilterSheet.jsx';
+import { LeadsTable } from '../components/leads/LeadsTable.jsx';
+import { LeadCard } from '../components/leads/LeadCard.jsx';
 import { LeadFormDrawer } from '../components/leads/LeadFormDrawer.jsx';
-import { LeadDetailsModal } from '../components/leads/LeadDetailsModal.jsx';
-import { DeleteConfirmModal } from '../components/leads/DeleteConfirmModal.jsx';
-import { useToast } from '../context/ToastContext.jsx';
-import { cn } from '../lib/cn.js';
+import { DeleteLeadDialog } from '../components/leads/DeleteLeadDialog.jsx';
+import { toast } from '../components/ui/Toaster.jsx';
+import { Plus, Download } from 'lucide-react';
 
 export function LeadsPage() {
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [urlParams] = useSearchParams();
 
-  // View state: 'table' | 'kanban'
-  const [viewMode, setViewMode] = useState('table');
-
-  // Query filter state
-  const [filters, setFilters] = useState({
-    page: 1,
-    limit: 10,
-    search: '',
-    status: '',
-    serviceInterested: '',
-    sort: '-createdAt',
-  });
-
-  // Modal / Drawer states
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(urlParams.get('drawer') === 'new');
   const [editingLead, setEditingLead] = useState(null);
-  const [viewingLead, setViewingLead] = useState(null);
-  const [deletingLead, setDeletingLead] = useState(null);
-  const [isExporting, setIsExporting] = useState(false);
 
-  // Fetch leads with active filters
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['leads', filters],
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState(null);
+
+  // Mobile filters drawer
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Filters hook
+  const filters = useLeadFilters();
+
+  // Query leads
+  const {
+    data: responseData,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['leads', filters.queryParams],
     queryFn: async () => {
-      // Clean empty string query params before sending
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
-      );
-      // If in Kanban mode, fetch a larger limit to populate board columns
-      if (viewMode === 'kanban') {
-        params.limit = 100;
-      }
-      const res = await leadsApi.list(params);
+      const res = await leadsApi.list(filters.queryParams);
       return res.data;
     },
+    placeholderData: keepPreviousData,
   });
 
-  const leads = data?.data || [];
-  const pagination = data?.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 };
+  const leads = responseData?.data || [];
+  const meta = responseData?.meta || {};
+  const totalItems = meta.total || 0;
+  const totalPages = meta.totalPages || 1;
 
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: (newLead) => leadsApi.create(newLead),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setDrawerOpen(false);
-      toast({
-        title: 'Lead Created',
-        message: 'New lead has been added to the system.',
-        variant: 'success',
-      });
-    },
-    onError: (err) => {
-      toast({
-        title: 'Failed to create lead',
-        message: err.message || 'Please review your input.',
-        variant: 'error',
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => leadsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setEditingLead(null);
-      setDrawerOpen(false);
-      toast({
-        title: 'Lead Updated',
-        message: 'Lead details have been saved.',
-        variant: 'success',
-      });
-    },
-    onError: (err) => {
-      toast({
-        title: 'Update failed',
-        message: err.message || 'Could not update lead.',
-        variant: 'error',
-      });
-    },
-  });
-
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: (id) => leadsApi.delete(id),
     onSuccess: () => {
+      toast.success('Lead permanently removed');
+      setDeleteModalOpen(false);
+      setLeadToDelete(null);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setDeletingLead(null);
-      if (viewingLead?._id === deletingLead?._id) {
-        setViewingLead(null);
-      }
-      toast({
-        title: 'Lead Deleted',
-        message: 'The lead and its activities have been permanently deleted.',
-        variant: 'success',
-      });
     },
     onError: (err) => {
-      toast({
-        title: 'Deletion failed',
-        message: err.message || 'Could not delete lead.',
-        variant: 'error',
-      });
+      toast.error(err.message || 'Failed to delete lead');
     },
   });
 
-  // Export CSV handler
-  const handleExportCSV = async () => {
-    try {
-      setIsExporting(true);
-      const params = Object.fromEntries(
-        Object.entries(filters).filter(([k, v]) => k !== 'page' && k !== 'limit' && v !== '')
-      );
-      const res = await leadsApi.export(params);
+  const handleDeleteConfirm = () => {
+    if (!leadToDelete) return;
+    deleteMutation.mutate(leadToDelete._id || leadToDelete.id);
+  };
 
-      // Create download blob
-      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
+  // CSV Export handler
+  const handleExportCsv = async () => {
+    try {
+      const res = await leadsApi.export(filters.queryParams);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `swan-leads-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `leads_export_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Export Complete',
-        message: 'CSV file downloaded successfully.',
-        variant: 'success',
-      });
-    } catch (err) {
-      toast({
-        title: 'Export Failed',
-        message: err.message || 'Could not generate CSV file.',
-        variant: 'error',
-      });
-    } finally {
-      setIsExporting(false);
+      link.remove();
+      toast.success('CSV export generated successfully');
+    } catch {
+      toast.error('Failed to export CSV');
     }
   };
 
-  const handleFormSubmit = (formData) => {
-    if (editingLead) {
-      updateMutation.mutate({ id: editingLead._id, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+  const handleEdit = (lead) => {
+    setEditingLead(lead);
+    setDrawerOpen(true);
   };
 
-  const handleResetFilters = () => {
-    setFilters({
-      page: 1,
-      limit: 10,
-      search: '',
-      status: '',
-      serviceInterested: '',
-      sort: '-createdAt',
-    });
+  const handleDeleteClick = (lead) => {
+    setLeadToDelete(lead);
+    setDeleteModalOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setEditingLead(null);
+    setDrawerOpen(true);
   };
 
   return (
-    <div className="space-y-5 pb-8">
-      {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]">
-              Leads Management
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300">
-              {pagination.total} Total
-            </span>
-          </div>
-          <p className="text-xs text-[var(--color-ink-subtle)] dark:text-[var(--color-dark-ink-subtle)] mt-0.5">
-            Track inquiries, update sales pipeline stages, and manage client follow-ups.
-          </p>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* View Switcher: Table / Kanban */}
-          <div className="flex items-center p-1 rounded-xl bg-gray-100 dark:bg-gray-800/80 border border-[var(--color-border)] dark:border-[var(--color-dark-border)]">
-            <button
-              type="button"
-              onClick={() => setViewMode('table')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                viewMode === 'table'
-                  ? 'bg-white dark:bg-gray-900 text-teal-700 dark:text-teal-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-              )}
+    <div className="space-y-6 font-mono">
+      {/* ── Page Header ────────────────────────────────────────── */}
+      <SectionHeader
+        eyebrow="02 / Leads"
+        title={isAdmin ? 'ALL LEADS' : 'MY LEADS'}
+        subtitle={
+          isAdmin
+            ? 'Organizational pipeline across all sales operators.'
+            : 'Leads created by or assigned to your sales account.'
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={handleExportCsv}
             >
-              <LayoutList size={14} /> Table
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                viewMode === 'kanban'
-                  ? 'bg-white dark:bg-gray-900 text-teal-700 dark:text-teal-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-              )}
+              <span className="inline-flex items-center gap-2">
+                <Download size={14} /> Export CSV
+              </span>
+            </Button>
+
+            <Button
+              variant="solid"
+              size="md"
+              onClick={handleCreateNew}
             >
-              <Kanban size={14} /> Board
-            </button>
-          </div>
-
-          {/* Export CSV */}
-          <Button
-            variant="outline"
-            size="md"
-            onClick={handleExportCSV}
-            isLoading={isExporting}
-            className="gap-1.5"
-          >
-            <Download size={14} /> Export CSV
-          </Button>
-
-          {/* Create Lead Button */}
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => {
-              setEditingLead(null);
-              setDrawerOpen(true);
-            }}
-            className="gap-1.5"
-          >
-            <Plus size={16} /> New Lead
-          </Button>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <LeadFilters
-        filters={filters}
-        onChange={(newFilters) => setFilters(newFilters)}
-        onReset={handleResetFilters}
-        totalCount={pagination.total}
+              <span className="inline-flex items-center gap-2">
+                <Plus size={15} /> New Lead
+              </span>
+            </Button>
+          </>
+        }
       />
 
-      {/* Content Area */}
-      {viewMode === 'table' ? (
-        <div className="bg-white dark:bg-[var(--color-dark-card)] rounded-xl border border-[var(--color-border)] dark:border-[var(--color-dark-border)] shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/80 dark:bg-gray-800/40 border-b border-[var(--color-border)] dark:border-[var(--color-dark-border)] text-xs font-semibold text-[var(--color-ink-subtle)] uppercase tracking-wider">
-                  <th className="px-4 py-3">Lead & Company</th>
-                  <th className="px-4 py-3">Contact Details</th>
-                  <th className="px-4 py-3">Service</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Follow-Up</th>
-                  <th className="px-4 py-3">Assigned Specialist</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+      {/* ── Toolbar (Search, Chips, Sort) ───────────────────────── */}
+      <LeadsToolbar
+        search={filters.search}
+        onSearchChange={filters.setSearch}
+        selectedStatuses={filters.selectedStatuses}
+        onToggleStatus={filters.toggleStatus}
+        datePreset={filters.datePreset}
+        onDatePresetChange={filters.setDatePreset}
+        dateFrom={filters.dateFrom}
+        dateTo={filters.dateTo}
+        onCustomDateChange={filters.setCustomDateRange}
+        sort={filters.sort}
+        onSortChange={filters.setSort}
+        totalResults={totalItems}
+        hasActiveFilters={filters.hasActiveFilters}
+        onClearFilters={filters.clearFilters}
+        onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+      />
+
+      {/* ── Content View (Desktop Table + Mobile Cards) ─────────── */}
+      {isError ? (
+        <ErrorState
+          title="FAILED TO FETCH LEADS"
+          message="Could not load lead records from the server."
+          onRetry={refetch}
+        />
+      ) : isLoading ? (
+        <>
+          <div className="hidden md:block">
+            <Table isFetching={true}>
+              <TableHeader>
+                <tr>
+                  <th className="py-3 px-4">#</th>
+                  <th className="py-3 px-4">Lead</th>
+                  <th className="py-3 px-4">Company</th>
+                  <th className="py-3 px-4">Service</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Follow-up</th>
+                  <th className="py-3 px-4">Created</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-border)] dark:divide-[var(--color-dark-border)]">
-                {isLoading ? (
-                  <>
-                    <TableRowSkeleton cols={7} />
-                    <TableRowSkeleton cols={7} />
-                    <TableRowSkeleton cols={7} />
-                    <TableRowSkeleton cols={7} />
-                    <TableRowSkeleton cols={7} />
-                  </>
-                ) : leads.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center">
-                      <EmptyState
-                        title="No leads found"
-                        description={
-                          filters.search || filters.status || filters.serviceInterested
-                            ? 'No inquiries match your current filter parameters.'
-                            : 'Get started by creating your first lead in the system.'
-                        }
-                        actionLabel="Add New Lead"
-                        onAction={() => {
-                          setEditingLead(null);
-                          setDrawerOpen(true);
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  leads.map((lead) => (
-                    <LeadRow
-                      key={lead._id}
-                      lead={lead}
-                      onView={(l) => setViewingLead(l)}
-                      onEdit={(l) => {
-                        setEditingLead(l);
-                        setDrawerOpen(true);
-                      }}
-                      onDelete={(l) => setDeletingLead(l)}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <TableRowSkeleton key={i} columns={8} />
+                ))}
+              </TableBody>
+            </Table>
           </div>
 
-          {/* Table Pagination */}
-          {!isLoading && pagination.total > 0 && (
-            <div className="p-4 border-t border-[var(--color-border)] dark:border-[var(--color-dark-border)]">
-              <Pagination
-                page={pagination.page}
-                limit={pagination.limit}
-                total={pagination.total}
-                totalPages={pagination.totalPages}
-                onPageChange={(p) => setFilters((prev) => ({ ...prev, page: p }))}
-                onLimitChange={(lim) => setFilters((prev) => ({ ...prev, limit: lim, page: 1 }))}
-              />
-            </div>
-          )}
-        </div>
+          <div className="md:hidden space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-44 bg-[#060606] border border-[#222222] animate-pulse" />
+            ))}
+          </div>
+        </>
+      ) : leads.length === 0 ? (
+        <EmptyState
+          title="NO LEADS FOUND"
+          description={
+            filters.hasActiveFilters
+              ? 'No leads matched your search and filter parameters.'
+              : 'Your pipeline is currently empty. Add your first prospect to begin.'
+          }
+          actionLabel={filters.hasActiveFilters ? 'CLEAR ALL FILTERS' : 'ADD FIRST LEAD'}
+          onAction={filters.hasActiveFilters ? filters.clearFilters : handleCreateNew}
+        />
       ) : (
-        /* Kanban Board View */
-        <div>
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <LeadCardSkeleton />
-              <LeadCardSkeleton />
-              <LeadCardSkeleton />
-              <LeadCardSkeleton />
-              <LeadCardSkeleton />
-            </div>
-          ) : (
-            <LeadKanbanBoard
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <LeadsTable
               leads={leads}
-              onView={(l) => setViewingLead(l)}
-              onEdit={(l) => {
-                setEditingLead(l);
-                setDrawerOpen(true);
-              }}
-              onDelete={(l) => setDeletingLead(l)}
-              onAddNew={() => {
-                setEditingLead(null);
-                setDrawerOpen(true);
-              }}
+              page={filters.page}
+              pageSize={filters.pageSize}
+              isFetching={isFetching}
+              sort={filters.sort}
+              onSort={filters.setSort}
+              onEdit={handleEdit}
+              onDelete={handleDeleteClick}
             />
-          )}
-        </div>
+          </div>
+
+          {/* Mobile Card Stack */}
+          <div className="md:hidden space-y-4">
+            {leads.map((lead, idx) => (
+              <LeadCard
+                key={lead._id || lead.id}
+                lead={lead}
+                index={(filters.page - 1) * filters.pageSize + idx + 1}
+                onView={() => navigate(`/leads/${lead._id || lead.id}`)}
+                onEdit={() => handleEdit(lead)}
+                onDelete={() => handleDeleteClick(lead)}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          <Pagination
+            currentPage={filters.page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={filters.pageSize}
+            onPageChange={filters.setPage}
+            onPageSizeChange={filters.setPageSize}
+          />
+        </>
       )}
 
-      {/* Slide-over Create / Edit Lead Drawer */}
+      {/* ── Mobile Filter Bottom Sheet ─────────────────────────── */}
+      <FilterSheet
+        open={mobileFiltersOpen}
+        onOpenChange={setMobileFiltersOpen}
+        selectedStatuses={filters.selectedStatuses}
+        onToggleStatus={filters.toggleStatus}
+        datePreset={filters.datePreset}
+        onDatePresetChange={filters.setDatePreset}
+        dateFrom={filters.dateFrom}
+        dateTo={filters.dateTo}
+        onCustomDateChange={filters.setCustomDateRange}
+        sort={filters.sort}
+        onSortChange={filters.setSort}
+        onClearFilters={() => {
+          filters.clearFilters();
+          setMobileFiltersOpen(false);
+        }}
+      />
+
+      {/* ── Lead Create / Edit Drawer ──────────────────────────── */}
       <LeadFormDrawer
-        isOpen={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        initialData={editingLead}
+        onSuccess={() => {
+          refetch();
           setEditingLead(null);
         }}
-        initialData={editingLead}
-        onSubmit={handleFormSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending}
       />
 
-      {/* Deep Lead Overview Modal with Activity Audit Trail */}
-      {viewingLead && (
-        <LeadDetailsModal
-          isOpen={Boolean(viewingLead)}
-          onClose={() => setViewingLead(null)}
-          lead={viewingLead}
-          onEdit={(l) => {
-            setViewingLead(null);
-            setEditingLead(l);
-            setDrawerOpen(true);
-          }}
-          onDelete={(l) => {
-            setViewingLead(null);
-            setDeletingLead(l);
-          }}
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deletingLead && (
-        <DeleteConfirmModal
-          isOpen={Boolean(deletingLead)}
-          onClose={() => setDeletingLead(null)}
-          onConfirm={() => deleteMutation.mutate(deletingLead._id)}
-          isLoading={deleteMutation.isPending}
-          title="Delete Lead Record"
-          description={`Are you sure you want to delete "${deletingLead.name}"? This will permanently remove the lead along with all historical activity and audit logs.`}
-        />
-      )}
+      {/* ── Delete Confirmation Dialog ─────────────────────────── */}
+      <DeleteLeadDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        lead={leadToDelete}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }
+
+export default LeadsPage;

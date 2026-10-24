@@ -1,63 +1,41 @@
-/**
- * LeadFormDrawer component.
- * Drawer form for creating or editing a lead with Zod validation.
- */
-
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { useQuery } from '@tanstack/react-query';
-import { Drawer, DrawerFooter } from '../ui/Drawer.jsx';
-import { Input, Textarea } from '../ui/Input.jsx';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Drawer } from '../ui/Drawer.jsx';
+import { Input } from '../ui/Input.jsx';
+import { Textarea } from '../ui/Textarea.jsx';
 import { Select } from '../ui/Select.jsx';
+import { DateInput } from '../ui/DateInput.jsx';
 import { Button } from '../ui/Button.jsx';
+import { ErrorBanner } from '../ui/FieldWrapper.jsx';
+import { toast } from '../ui/Toaster.jsx';
+import { leadsApi } from '../../api/leads.api.js';
 import { usersApi } from '../../api/dashboard.api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-
-const LEAD_SERVICES = [
-  'Web Development',
-  'Mobile App Development',
-  'SEO',
-  'Social Media Marketing',
-  'Performance Marketing',
-  'UI/UX Design',
-  'Custom Software',
-  'Other',
-];
-
-const LEAD_STATUSES = ['New', 'Contacted', 'Qualified', 'Converted', 'Lost'];
-
-const leadSchema = z.object({
-  name: z.string().trim().min(1, 'Lead name is required').max(150, 'Max 150 characters'),
-  email: z.string().trim().email('Invalid email address').min(1, 'Email is required'),
-  phone: z.string().trim().max(30, 'Phone must be under 30 characters').optional().or(z.literal('')),
-  company: z.string().trim().max(150, 'Company must be under 150 characters').optional().or(z.literal('')),
-  serviceInterested: z.string().min(1, 'Please select a service'),
-  status: z.enum(LEAD_STATUSES),
-  followUpDate: z.string().optional().or(z.literal('')),
-  notes: z.string().max(5000, 'Notes must be under 5000 characters').optional().or(z.literal('')),
-  assignedTo: z.string().optional().or(z.literal('')),
-});
+import { leadSchema } from '../../lib/schemas.js';
+import { LEAD_SERVICES, LEAD_STATUSES } from '../../lib/constants.js';
 
 export function LeadFormDrawer({
-  isOpen,
-  onClose,
-  onSubmit,
+  open,
+  onOpenChange,
   initialData = null,
-  isLoading = false,
+  onSuccess,
 }) {
   const isEditing = Boolean(initialData?._id);
   const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const [duplicateWarning, setDuplicateWarning] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
-  // If admin, fetch users to populate assignedTo dropdown
+  // Fetch users list for Admin assignment
   const { data: usersData } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const res = await usersApi.list();
-      return res.data.data;
+      return res.data?.data || [];
     },
-    enabled: isOpen && isAdmin,
+    enabled: open && isAdmin,
     staleTime: 60 * 1000,
   });
 
@@ -66,8 +44,10 @@ export function LeadFormDrawer({
   const {
     register,
     handleSubmit,
+    control,
     reset,
-    formState: { errors, isDirty },
+    setFocus,
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(leadSchema),
     defaultValues: {
@@ -118,128 +98,212 @@ export function LeadFormDrawer({
         assignedTo: '',
       });
     }
-  }, [initialData, reset, isOpen]);
+  }, [initialData, reset, open]);
 
-  const handleFormSubmit = (data) => {
+  // Lead save mutation
+  const leadMutation = useMutation({
+    mutationFn: (payload) => {
+      if (isEditing) {
+        return leadsApi.update(initialData._id, payload);
+      }
+      return leadsApi.create(payload);
+    },
+    onSuccess: (res) => {
+      const warning = res.data?.warning;
+      if (warning) {
+        setDuplicateWarning(warning);
+        toast.info(warning);
+      } else {
+        toast.success(isEditing ? 'Lead updated successfully' : 'Lead created successfully');
+      }
+
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (isEditing) {
+        queryClient.invalidateQueries({ queryKey: ['lead', initialData._id] });
+        queryClient.invalidateQueries({ queryKey: ['leadActivities', initialData._id] });
+      }
+
+      if (onSuccess) onSuccess(res.data?.data);
+      onOpenChange(false);
+    },
+    onError: (err) => {
+      setSubmitError(err.message || 'Failed to save lead. Please check the form.');
+      toast.error(err.message || 'Failed to save lead.');
+    },
+  });
+
+  const onSubmit = (data) => {
+    setSubmitError('');
+    setDuplicateWarning('');
+
     const payload = {
-      ...data,
+      name: data.name.trim(),
+      email: data.email.trim(),
+      phone: data.phone?.trim() || undefined,
+      company: data.company?.trim() || undefined,
+      serviceInterested: data.serviceInterested,
+      status: data.status,
       followUpDate: data.followUpDate ? new Date(data.followUpDate).toISOString() : null,
-      assignedTo: data.assignedTo ? data.assignedTo : null,
+      notes: data.notes?.trim() || undefined,
+      assignedTo: data.assignedTo || null,
     };
-    onSubmit(payload);
+
+    leadMutation.mutate(payload);
+  };
+
+  const onError = (formErrors) => {
+    const firstField = Object.keys(formErrors)[0];
+    if (firstField) {
+      setFocus(firstField);
+    }
   };
 
   return (
     <Drawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? 'Edit Lead' : 'Create New Lead'}
+      open={open}
+      onOpenChange={onOpenChange}
+      eyebrow={isEditing ? 'Lead / Edit' : 'Lead / Create'}
+      title={isEditing ? 'EDIT LEAD' : 'NEW LEAD'}
       description={
         isEditing
-          ? 'Update the lead details and save changes.'
-          : 'Fill in the information below to add a new lead to Swan LMS.'
+          ? 'Modify pipeline attributes and save updates.'
+          : 'Enter prospect details to log a new inquiry.'
       }
-      size="md"
+      footer={
+        <div className="flex items-center justify-end gap-3 font-mono">
+          <Button
+            variant="ghost"
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={leadMutation.isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="lead-drawer-form"
+            variant="solid"
+            pending={leadMutation.isPending}
+            pendingLabel="SAVING"
+          >
+            Save Lead
+          </Button>
+        </div>
+      }
     >
-      <form id="lead-form" onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-        {/* Full Name */}
-        <Input
-          label="Lead Name *"
-          placeholder="e.g. Sarah Jenkins"
-          error={errors.name?.message}
-          {...register('name')}
-        />
+      <form
+        id="lead-drawer-form"
+        onSubmit={handleSubmit(onSubmit, onError)}
+        className="space-y-4"
+      >
+        {submitError && <ErrorBanner message={submitError} />}
 
-        {/* Email & Phone */}
+        {duplicateWarning && (
+          <div className="bg-[#161616] border border-[#FE6A00]/40 p-3 text-xs text-[#FE6A00] font-mono border-l-2 border-l-[#FE6A00]">
+            Notice: {duplicateWarning}
+          </div>
+        )}
+
+        {/* 2-Column Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Email Address *"
+            label="Name *"
+            placeholder="Arjun Mehta"
+            error={errors.name?.message}
+            {...register('name')}
+          />
+
+          <Input
+            label="Email *"
             type="email"
-            placeholder="e.g. sarah@example.com"
+            placeholder="arjun@example.com"
             error={errors.email?.message}
             {...register('email')}
           />
+
           <Input
-            label="Phone Number"
+            label="Phone"
             type="tel"
-            placeholder="+1 (555) 000-0000"
+            placeholder="+91 98765 43210"
             error={errors.phone?.message}
             {...register('phone')}
           />
+
+          <Input
+            label="Company"
+            placeholder="Acme Corp"
+            error={errors.company?.message}
+            {...register('company')}
+          />
+
+          <Controller
+            control={control}
+            name="serviceInterested"
+            render={({ field }) => (
+              <Select
+                label="Service Interested *"
+                value={field.value}
+                onValueChange={field.onChange}
+                options={LEAD_SERVICES.map((s) => ({ value: s, label: s }))}
+                error={errors.serviceInterested?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Select
+                label="Status *"
+                value={field.value}
+                onValueChange={field.onChange}
+                options={LEAD_STATUSES.map((s) => ({ value: s, label: s }))}
+                error={errors.status?.message}
+              />
+            )}
+          />
+
+          <DateInput
+            label="Follow-up Date"
+            error={errors.followUpDate?.message}
+            {...register('followUpDate')}
+          />
+
+          {isAdmin && (
+            <Controller
+              control={control}
+              name="assignedTo"
+              render={({ field }) => (
+                <Select
+                  label="Assigned To"
+                  value={field.value || ''}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: '', label: 'Unassigned' },
+                    ...usersList.map((u) => ({
+                      value: u._id,
+                      label: `${u.name} (${u.role})`,
+                    })),
+                  ]}
+                  error={errors.assignedTo?.message}
+                />
+              )}
+            />
+          )}
         </div>
 
-        {/* Company */}
-        <Input
-          label="Company Name"
-          placeholder="e.g. Acme Tech Solutions"
-          error={errors.company?.message}
-          {...register('company')}
-        />
-
-        {/* Service Interested & Status */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            label="Service Interested *"
-            options={LEAD_SERVICES.map((s) => ({ value: s, label: s }))}
-            error={errors.serviceInterested?.message}
-            {...register('serviceInterested')}
-          />
-
-          <Select
-            label="Status *"
-            options={LEAD_STATUSES.map((s) => ({ value: s, label: s }))}
-            error={errors.status?.message}
-            {...register('status')}
-          />
-        </div>
-
-        {/* Follow-up Date */}
-        <Input
-          label="Follow-Up Date"
-          type="date"
-          error={errors.followUpDate?.message}
-          {...register('followUpDate')}
-        />
-
-        {/* Assigned To (if Admin) */}
-        {isAdmin && (
-          <Select
-            label="Assigned Specialist"
-            options={[
-              { value: '', label: 'Unassigned' },
-              ...usersList.map((u) => ({
-                value: u._id,
-                label: `${u.name} (${u.role})`,
-              })),
-            ]}
-            error={errors.assignedTo?.message}
-            {...register('assignedTo')}
-          />
-        )}
-
-        {/* Notes */}
+        {/* Notes (full width) */}
         <Textarea
-          label="Notes / Brief"
-          placeholder="Enter any initial requirements, client notes, or background context..."
+          label="Notes"
           rows={4}
+          placeholder="Detailed client requirements, scope notes, or conversation log..."
           error={errors.notes?.message}
           {...register('notes')}
         />
       </form>
-
-      <DrawerFooter>
-        <Button variant="ghost" type="button" onClick={onClose} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          form="lead-form"
-          variant="primary"
-          isLoading={isLoading}
-        >
-          {isEditing ? 'Save Changes' : 'Create Lead'}
-        </Button>
-      </DrawerFooter>
     </Drawer>
   );
 }

@@ -1,0 +1,747 @@
+/* ============================================================
+   Swan LMS - Landing Page Design System
+   Dark editorial design tokens (scoped to .landing-page)
+   ============================================================ */
+
+@import "@fontsource/bebas-neue/400.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/* ── Landing Page Root (dark, isolated from app theme) ──── */
+.landing-page {
+  --lp-bg:             #020202;
+  --lp-fg:             #EEEEEE;
+  --lp-card:           #060606;
+  --lp-secondary:      #121212;
+  --lp-muted:          #222222;
+  --lp-muted-fg:       #717171;
+  --lp-border:         #222222;
+  --lp-accent:         #FE6A00;
+  --lp-accent-fg:      #020202;
+
+  --lp-font-display:   "Bebas Neue", Impact, sans-serif;
+  --lp-font-sans:      "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --lp-font-mono:      "IBM Plex Mono", "Courier New", monospace;
+
+  background-color: var(--lp-bg);
+  color: var(--lp-fg);
+  font-family: var(--lp-font-mono);
+  overflow-x: hidden;
+  max-width: 100vw;
+  position: relative;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+.landing-page::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.landing-page::-webkit-scrollbar-track {
+  background: #020202;
+}
+.landing-page::-webkit-scrollbar-thumb {
+  background: #3D3D3D;
+  border-radius: 0;
+}
+.landing-page::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+/* ── Text Selection ─────────────────────────────────────── */
+.landing-page ::selection {
+  background-color: var(--lp-accent);
+  color: var(--lp-accent-fg);
+}
+
+/* ── Focus Ring ─────────────────────────────────────────── */
+.landing-page :focus-visible {
+  outline: 2px solid var(--lp-accent);
+  outline-offset: 2px;
+  border-radius: 0;
+}
+
+/* ── Global Grid Background ─────────────────────────────── */
+.lp-grid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.30;
+  background-image:
+    linear-gradient(to right, #161616 1px, transparent 1px),
+    linear-gradient(to bottom, #161616 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* ── Noise Overlay ──────────────────────────────────────── */
+.lp-noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 300px 300px;
+}
+
+/* ── Content Shell ──────────────────────────────────────── */
+.lp-shell {
+  position: relative;
+  z-index: 10;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .lp-shell {
+    padding-left: 7rem;
+    padding-right: 3rem;
+  }
+}
+
+/* ── Section Rhythm ─────────────────────────────────────── */
+.lp-section {
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+}
+
+/* ── Eyebrow ────────────────────────────────────────────── */
+.lp-eyebrow {
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--lp-accent);
+  display: block;
+}
+
+/* ── Section Heading ────────────────────────────────────── */
+.lp-heading {
+  font-family: var(--lp-font-display);
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-top: 1rem;
+  color: var(--lp-fg);
+}
+
+/* ── Body Copy ──────────────────────────────────────────── */
+.lp-body {
+  font-family: var(--lp-font-mono);
+  font-size: 0.75rem;
+  color: var(--lp-muted-fg);
+  line-height: 1.7;
+}
+
+/* ── Meta label ─────────────────────────────────────────── */
+.lp-meta {
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--lp-muted-fg);
+}
+
+/* ── Side Nav ───────────────────────────────────────────── */
+.lp-sidenav {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 5rem;
+  z-index: 50;
+  border-right: 1px solid rgba(34, 34, 34, 0.3);
+  background-color: rgba(2, 2, 2, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .lp-sidenav {
+    display: flex;
+  }
+}
+
+.lp-sidenav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.lp-sidenav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(113, 113, 113, 0.4);
+  transition: background-color 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+
+.lp-sidenav-item.active .lp-sidenav-dot {
+  background-color: #FE6A00;
+  transform: scale(1.25);
+}
+
+.lp-sidenav-label {
+  position: absolute;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #EEEEEE;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, left 0.2s;
+}
+
+.lp-sidenav-item:hover .lp-sidenav-label {
+  opacity: 1;
+  left: 2rem;
+}
+
+/* ── Pipeline Cards ─────────────────────────────────────── */
+.lp-pipeline-card {
+  position: relative;
+  width: 20rem;
+  flex-shrink: 0;
+  background-color: var(--lp-card);
+  padding: 2rem;
+  cursor: pointer;
+  transition: transform 0.5s ease;
+}
+
+.lp-pipeline-card:hover {
+  transform: translateY(-0.5rem);
+}
+
+.lp-pipeline-card {
+  border: 1px solid rgba(34, 34, 34, 0.5);
+}
+
+@media (min-width: 768px) {
+  .lp-pipeline-card {
+    border-top: 1px solid rgba(34, 34, 34, 0.5);
+    border-left: 1px solid rgba(34, 34, 34, 0.5);
+    border-right: none;
+    border-bottom: none;
+  }
+}
+
+/* Top hairline fade */
+.lp-pipeline-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(254,106,0,0.3), transparent);
+}
+
+/* Folded corner bottom-right */
+.lp-pipeline-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 20px 20px;
+  border-color: transparent transparent #020202 transparent;
+}
+
+.lp-pipeline-card-title {
+  font-family: var(--lp-font-display);
+  font-size: 2.25rem;
+  line-height: 1;
+  transition: color 0.3s;
+  color: var(--lp-fg);
+}
+
+.lp-pipeline-card:hover .lp-pipeline-card-title {
+  color: var(--lp-accent);
+}
+
+.lp-pipeline-card-divider {
+  width: 3rem;
+  height: 1px;
+  background-color: rgba(254, 106, 0, 0.6);
+  margin: 1rem 0;
+  transition: width 0.5s ease;
+}
+
+.lp-pipeline-card:hover .lp-pipeline-card-divider {
+  width: 100%;
+}
+
+.lp-card-shadow-offset {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(254, 106, 0, 0.05);
+  transform: translate(4px, 4px);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s;
+}
+
+.lp-pipeline-card:hover .lp-card-shadow-offset {
+  opacity: 1;
+}
+
+/* ── Capabilities Grid ──────────────────────────────────── */
+.lp-cap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  grid-auto-rows: 180px;
+}
+
+@media (min-width: 768px) {
+  .lp-cap-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    grid-auto-rows: 200px;
+  }
+}
+
+.lp-col-span-2 { grid-column: span 2; }
+.lp-row-span-2 { grid-row: span 2; }
+
+/* ── Capabilities Cards ─────────────────────────────────── */
+.lp-cap-card {
+  position: relative;
+  border: 1px solid rgba(34, 34, 34, 0.4);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.lp-cap-card:hover,
+.lp-cap-card.cap-active {
+  border-color: rgba(254, 106, 0, 0.6);
+}
+
+.lp-cap-card-bg {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(254, 106, 0, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.lp-cap-card:hover .lp-cap-card-bg,
+.lp-cap-card.cap-active .lp-cap-card-bg {
+  opacity: 1;
+}
+
+.lp-cap-card-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 3rem;
+  height: 3rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.lp-cap-card-corner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #FE6A00;
+}
+
+.lp-cap-card-corner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #FE6A00;
+}
+
+.lp-cap-card:hover .lp-cap-card-corner,
+.lp-cap-card.cap-active .lp-cap-card-corner {
+  opacity: 1;
+}
+
+.lp-cap-card-label {
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--lp-muted-fg);
+}
+
+.lp-cap-card-title {
+  font-family: var(--lp-font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--lp-fg);
+  transition: color 0.3s;
+}
+
+@media (min-width: 768px) {
+  .lp-cap-card-title {
+    font-size: 2.25rem;
+  }
+}
+
+.lp-cap-card:hover .lp-cap-card-title,
+.lp-cap-card.cap-active .lp-cap-card-title {
+  color: var(--lp-accent);
+}
+
+.lp-cap-card-desc {
+  font-family: var(--lp-font-mono);
+  font-size: 0.7rem;
+  color: var(--lp-muted-fg);
+  max-width: 280px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s, transform 0.3s;
+  line-height: 1.6;
+}
+
+.lp-cap-card:hover .lp-cap-card-desc,
+.lp-cap-card.cap-active .lp-cap-card-desc {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  .lp-cap-card-desc {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-cap-card-idx {
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  color: rgba(113, 113, 113, 0.4);
+  align-self: flex-end;
+  transition: color 0.3s;
+}
+
+.lp-cap-card:hover .lp-cap-card-idx,
+.lp-cap-card.cap-active .lp-cap-card-idx {
+  color: var(--lp-accent);
+}
+
+/* ── Highlight Text ─────────────────────────────────────── */
+.lp-highlight {
+  position: relative;
+  display: inline-block;
+}
+
+.lp-highlight-bar {
+  position: absolute;
+  left: -0.1em;
+  right: -0.1em;
+  top: 0.15em;
+  bottom: 0.1em;
+  background-color: #FE6A00;
+  transform-origin: left;
+  transform: scaleX(0);
+  z-index: 0;
+}
+
+.lp-highlight-text {
+  position: relative;
+  z-index: 1;
+  transition: color 0.6s 0.5s;
+}
+
+/* ── Split Flap ─────────────────────────────────────────── */
+.lp-splitflap-container {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 0.08em;
+  perspective: 1000px;
+}
+
+.lp-tile {
+  position: relative;
+  width: 0.65em;
+  height: 1.05em;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--lp-font-display);
+  font-size: clamp(4rem, 15vw, 14rem);
+  background-color: #000;
+  flex-shrink: 0;
+}
+
+.lp-tile-char {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  line-height: 1.05em;
+  color: #fff;
+  font-family: var(--lp-font-display);
+}
+
+.lp-tile-top-half {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.lp-tile-bottom-half {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.lp-tile-divider {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 10;
+  transform: translateY(-50%);
+}
+
+.lp-tile-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  transform-origin: bottom center;
+  backface-visibility: hidden;
+  transform: rotateX(-90deg);
+  will-change: transform;
+}
+
+/* ── Bitmap Chevron ─────────────────────────────────────── */
+.lp-chevron-wrap {
+  display: inline-flex;
+  transition: transform 0.4s ease-in-out;
+}
+
+button:hover .lp-chevron-wrap,
+a:hover .lp-chevron-wrap {
+  transform: rotate(45deg);
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.lp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(238, 238, 238, 0.2);
+  padding: 0.75rem 1.5rem;
+  font-family: var(--lp-font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #EEEEEE;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  text-decoration: none;
+}
+
+.lp-btn-primary:hover {
+  border-color: #FE6A00;
+  color: #FE6A00;
+}
+
+.lp-text-link {
+  font-family: var(--lp-font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #717171;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.lp-text-link:hover {
+  color: #EEEEEE;
+}
+
+/* ── Cursor Follower ────────────────────────────────────── */
+.lp-cursor-follower {
+  position: fixed;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #FE6A00;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+
+/* ── Mobile Top Link ────────────────────────────────────── */
+.lp-mobile-login {
+  display: block;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #717171;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.lp-mobile-login:hover {
+  color: #FE6A00;
+}
+
+@media (min-width: 768px) {
+  .lp-mobile-login {
+    display: none;
+  }
+}
+
+/* ── Mute Toggle ────────────────────────────────────────── */
+.lp-mute-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #717171;
+  transition: color 0.2s;
+}
+
+.lp-mute-toggle:hover {
+  color: #EEEEEE;
+}
+
+/* ── Vertical Label ─────────────────────────────────────── */
+.lp-vertical-label {
+  position: absolute;
+  left: 1.2rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  font-family: var(--lp-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: #717171;
+  user-select: none;
+}
+
+/* ── Pipeline Scroll Container ───────────────────────────── */
+.lp-pipeline-scroll {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 2rem;
+  padding-right: 3rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lp-pipeline-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Footer link hover ──────────────────────────────────── */
+.lp-footer-link {
+  color: rgba(238, 238, 238, 0.8);
+  text-decoration: none;
+  font-family: var(--lp-font-mono);
+  font-size: 0.75rem;
+  transition: color 0.2s;
+  display: inline-block;
+}
+
+.lp-footer-link:hover {
+  color: #FE6A00;
+}
+
+/* ── AnimatedNoise canvas ───────────────────────────────── */
+.lp-hero-noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.03;
+  z-index: 2;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .lp-tile-flap {
+    transition: none;
+    animation: none;
+  }
+  .lp-pipeline-card,
+  .lp-cap-card,
+  .lp-cap-card-desc,
+  .lp-pipeline-card-divider,
+  .lp-highlight-bar,
+  .lp-chevron-wrap {
+    transition: none;
+    animation: none;
+  }
+}

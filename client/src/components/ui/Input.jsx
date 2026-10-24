@@ -1,130 +1,67 @@
-/**
- * Input component with optional label, error message, and left/right adornments.
- */
-
 import { forwardRef } from 'react';
 import { cn } from '../../lib/cn.js';
 
-/**
- * @param {object} props
- * @param {string} [props.label]
- * @param {string} [props.error]
- * @param {string} [props.hint]
- * @param {React.ReactNode} [props.leftIcon]
- * @param {React.ReactNode} [props.rightElement]
- * @param {boolean} [props.required]
- */
 export const Input = forwardRef(function Input(
-  { label, error, hint, leftIcon, rightElement, required, className, id, ...props },
+  {
+    label,
+    error,
+    hint,
+    leftIcon,
+    rightIcon,
+    className = '',
+    id,
+    ...props
+  },
   ref
 ) {
-  const inputId = id || `input-${Math.random().toString(36).slice(2, 9)}`;
+  const inputId = id || (label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="w-full space-y-1.5 text-left font-mono">
       {label && (
         <label
           htmlFor={inputId}
-          className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]"
+          className="block text-[10px] uppercase tracking-widest text-[#717171]"
         >
           {label}
-          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
-      <div className="relative">
+
+      <div className="relative flex items-center">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)]">
+          <span className="absolute left-3 text-[#717171] pointer-events-none flex items-center">
             {leftIcon}
-          </div>
+          </span>
         )}
+
         <input
           ref={ref}
           id={inputId}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
-            'w-full h-9 rounded-lg border px-3 text-sm',
-            'bg-white dark:bg-[var(--color-dark-card)]',
-            'text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]',
-            'placeholder:text-[var(--color-ink-subtle)]',
-            'border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-            'focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent',
-            'transition-shadow duration-150',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-red-500 focus:ring-red-400',
+            'w-full h-11 bg-[#161616] text-[#EEEEEE] font-mono text-sm px-3.5 border transition-colors',
+            'border-[#222222] hover:border-[#EEEEEE]/30',
+            'focus:border-[#FE6A00] focus:outline-1 focus:outline-[#FE6A00]',
+            'placeholder:text-[#717171]/60',
             leftIcon && 'pl-9',
-            rightElement && 'pr-10',
+            rightIcon && 'pr-9',
+            error && 'border-[#E7000B] hover:border-[#E7000B]',
             className
           )}
           {...props}
         />
-        {rightElement && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            {rightElement}
-          </div>
+
+        {rightIcon && (
+          <span className="absolute right-3 text-[#717171] flex items-center">
+            {rightIcon}
+          </span>
         )}
       </div>
-      {error && (
-        <p id={`${inputId}-error`} className="text-xs text-red-500" role="alert">
-          {error}
-        </p>
-      )}
-      {hint && !error && (
-        <p id={`${inputId}-hint`} className="text-xs text-[var(--color-ink-subtle)]">
-          {hint}
-        </p>
-      )}
-    </div>
-  );
-});
 
-/**
- * Textarea component.
- */
-export const Textarea = forwardRef(function Textarea(
-  { label, error, hint, required, className, id, ...props },
-  ref
-) {
-  const inputId = id || `textarea-${Math.random().toString(36).slice(2, 9)}`;
-
-  return (
-    <div className="flex flex-col gap-1.5">
-      {label && (
-        <label
-          htmlFor={inputId}
-          className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]"
-        >
-          {label}
-          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
-        </label>
-      )}
-      <textarea
-        ref={ref}
-        id={inputId}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${inputId}-error` : undefined}
-        className={cn(
-          'w-full rounded-lg border px-3 py-2 text-sm min-h-24 resize-y',
-          'bg-white dark:bg-[var(--color-dark-card)]',
-          'text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]',
-          'placeholder:text-[var(--color-ink-subtle)]',
-          'border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-          'focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent',
-          'transition-shadow duration-150',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          error && 'border-red-500 focus:ring-red-400',
-          className
-        )}
-        {...props}
-      />
-      {error && (
-        <p id={`${inputId}-error`} className="text-xs text-red-500" role="alert">
-          {error}
-        </p>
-      )}
-      {hint && !error && (
-        <p className="text-xs text-[var(--color-ink-subtle)]">{hint}</p>
-      )}
+      {error ? (
+        <p className="text-[11px] text-[#F2554F] font-mono tracking-wide">{error}</p>
+      ) : hint ? (
+        <p className="text-[10px] text-[#717171] font-mono">{hint}</p>
+      ) : null}
     </div>
   );
 });

@@ -1,23 +1,25 @@
-/**
- * Card component - 12px radius, 1px border, soft shadow.
- */
-
 import { cn } from '../../lib/cn.js';
 
 /**
- * @param {object} props
- * @param {boolean} [props.hoverable]
- * @param {boolean} [props.padded]
+ * Editorial Card component.
+ * Border 1px #222222/40, flat background #060606 (or transparent).
+ * Interactive variant adds landing hover: accent border, accent tint, and 48px top-right L-shape.
  */
-export function Card({ className, children, hoverable = false, padded = false, ...props }) {
+export function Card({
+  className = '',
+  children,
+  interactive = false,
+  raised = true,
+  onClick,
+  ...props
+}) {
   return (
     <div
+      onClick={onClick}
       className={cn(
-        'bg-white dark:bg-[var(--color-dark-card)] rounded-xl',
-        'border border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-        'shadow-[var(--shadow-card)]',
-        hoverable && 'transition-shadow duration-200 hover:shadow-[var(--shadow-card-hover)]',
-        padded && 'p-6',
+        'relative border border-[#222222]/50 p-5 md:p-6 transition-all',
+        raised ? 'bg-[#060606]' : 'bg-transparent',
+        interactive && 'interactive-card cursor-pointer',
         className
       )}
       {...props}
@@ -27,12 +29,11 @@ export function Card({ className, children, hoverable = false, padded = false, .
   );
 }
 
-export function CardHeader({ className, children, ...props }) {
+export function CardHeader({ className = '', children, ...props }) {
   return (
     <div
       className={cn(
-        'flex items-center justify-between px-6 py-4',
-        'border-b border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
+        'flex items-center justify-between pb-4 border-b border-[#222222]/50 mb-4',
         className
       )}
       {...props}
@@ -42,24 +43,24 @@ export function CardHeader({ className, children, ...props }) {
   );
 }
 
-export function CardContent({ className, children, ...props }) {
-  return (
-    <div className={cn('p-6', className)} {...props}>
-      {children}
-    </div>
-  );
-}
-
-export function CardTitle({ className, children, ...props }) {
+export function CardTitle({ className = '', children, ...props }) {
   return (
     <h3
       className={cn(
-        'text-sm font-semibold text-[var(--color-ink)] dark:text-[var(--color-dark-ink)] tracking-tight',
+        'font-display text-xl uppercase tracking-wide text-[#EEEEEE]',
         className
       )}
       {...props}
     >
       {children}
     </h3>
+  );
+}
+
+export function CardContent({ className = '', children, ...props }) {
+  return (
+    <div className={cn('space-y-4', className)} {...props}>
+      {children}
+    </div>
   );
 }

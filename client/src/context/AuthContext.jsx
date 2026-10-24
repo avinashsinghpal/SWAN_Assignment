@@ -5,10 +5,9 @@
  * A 401 response clears the auth state and redirects to login.
  */
 
-import { createContext, useContext, useCallback } from 'react';
+import { createContext, useContext, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api.js';
-import { apiClient } from '../api/client.js';
 
 const AuthContext = createContext(null);
 
@@ -35,17 +34,23 @@ export function AuthProvider({ children }) {
     } catch {
       // Ignore - we clear state regardless
     }
-    queryClient.clear();
-  }, [queryClient]);
-
-  // Attach a 401 interceptor that clears auth state
-  // (the interceptor is set once; it calls logout via a stable ref)
-  const handleUnauthorised = useCallback(() => {
     queryClient.setQueryData(['auth', 'me'], null);
     queryClient.clear();
   }, [queryClient]);
 
-  // Register 401 response interceptor once
+  const handleUnauthorized = useCallback(() => {
+    queryClient.setQueryData(['auth', 'me'], null);
+    queryClient.clear();
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = `/login?expired=1&from=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    }
+  }, [queryClient]);
+
+  useEffect(() => {
+    window.addEventListener('swan:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('swan:unauthorized', handleUnauthorized);
+  }, [handleUnauthorized]);
+
   const value = {
     user: user ?? null,
     isAuthenticated: !!user,
@@ -53,7 +58,8 @@ export function AuthProvider({ children }) {
     isLoading,
     isError,
     logout,
-    handleUnauthorised,
+    handleUnauthorized,
+    handleUnauthorised: handleUnauthorized,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

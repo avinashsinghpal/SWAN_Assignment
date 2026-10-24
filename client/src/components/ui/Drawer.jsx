@@ -1,116 +1,71 @@
-/**
- * Drawer (slide-over panel) component.
- * Slides in from the right side, used for create/edit lead forms.
- */
-
-import { useEffect, useRef } from 'react';
+import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/cn.js';
 
-/**
- * @param {object} props
- * @param {boolean} props.open
- * @param {function} props.onClose
- * @param {string} props.title
- * @param {'sm'|'md'|'lg'} [props.size]
- */
-export function Drawer({ open, onClose, title, size = 'md', children }) {
-  const drawerRef = useRef(null);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  // Lock body scroll
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-
-  // Focus drawer when opened
-  useEffect(() => {
-    if (open && drawerRef.current) drawerRef.current.focus();
-  }, [open]);
-
-  const WIDTH = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-xl' };
-
+export function Drawer({
+  open,
+  onOpenChange,
+  eyebrow,
+  title,
+  description,
+  children,
+  footer,
+  className = '',
+}) {
   return (
-    <div
-      className={cn(
-        'fixed inset-0 z-50',
-        open ? 'pointer-events-auto' : 'pointer-events-none'
-      )}
-      aria-hidden={!open}
-    >
-      {/* Overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200',
-          open ? 'opacity-100' : 'opacity-0'
-        )}
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="fixed inset-0 bg-black/70 z-50 transition-opacity animate-in fade-in duration-200" />
+        <RadixDialog.Content
+          className={cn(
+            'fixed top-0 right-0 bottom-0 z-50 w-full sm:w-[520px] bg-[#030303] border-l border-[#222222] shadow-2xl flex flex-col font-mono focus:outline-none transition-transform duration-200',
+            className
+          )}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-[#222222]/60 flex items-start justify-between shrink-0">
+            <div>
+              {eyebrow && (
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#FE6A00] mb-1">
+                  {eyebrow}
+                </p>
+              )}
+              {title && (
+                <RadixDialog.Title className="font-display text-3xl uppercase tracking-wide text-[#EEEEEE] m-0">
+                  {title}
+                </RadixDialog.Title>
+              )}
+              {description && (
+                <RadixDialog.Description className="text-xs text-[#717171] mt-1">
+                  {description}
+                </RadixDialog.Description>
+              )}
+            </div>
 
-      {/* Panel */}
-      <div
-        ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="drawer-title"
-        tabIndex={-1}
-        className={cn(
-          'absolute right-0 top-0 h-full w-full',
-          WIDTH[size],
-          'bg-white dark:bg-[var(--color-dark-card)]',
-          'border-l border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-          'shadow-[var(--shadow-modal)]',
-          'transition-transform duration-200 ease-out',
-          'flex flex-col focus:outline-none',
-          open ? 'translate-x-0' : 'translate-x-full'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] dark:border-[var(--color-dark-border)] shrink-0">
-          <h2
-            id="drawer-title"
-            className="text-base font-semibold text-[var(--color-ink)] dark:text-[var(--color-dark-ink)] tracking-tight"
-          >
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-[var(--color-ink-subtle)] hover:text-[var(--color-ink)] dark:hover:text-[var(--color-dark-ink)] transition-colors rounded-lg p-1.5 hover:bg-[var(--color-border)] dark:hover:bg-[var(--color-dark-border)]"
-            aria-label="Close panel"
-          >
-            <X size={18} />
-          </button>
-        </div>
+            <RadixDialog.Close asChild>
+              <button
+                type="button"
+                className="w-9 h-9 flex items-center justify-center border border-[#222222] text-[#717171] hover:text-[#EEEEEE] hover:border-[#FE6A00] transition-colors shrink-0 ml-4"
+                aria-label="Close drawer"
+              >
+                <X size={16} />
+              </button>
+            </RadixDialog.Close>
+          </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {children}
+          </div>
 
-export function DrawerFooter({ className, children }) {
-  return (
-    <div
-      className={cn(
-        'flex items-center justify-end gap-3 px-6 py-4',
-        'border-t border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-        'bg-white dark:bg-[var(--color-dark-card)] shrink-0',
-        className
-      )}
-    >
-      {children}
-    </div>
+          {/* Footer (sticky) */}
+          {footer && (
+            <div className="p-6 border-t border-[#222222]/60 bg-[#030303] shrink-0">
+              {footer}
+            </div>
+          )}
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 }

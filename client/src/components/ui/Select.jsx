@@ -1,76 +1,83 @@
-/**
- * Select component with label and error support.
- */
-
-import { forwardRef } from 'react';
-import { ChevronDown } from 'lucide-react';
+import * as RadixSelect from '@radix-ui/react-select';
+import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../lib/cn.js';
 
-/**
- * @param {object} props
- * @param {string} [props.label]
- * @param {string} [props.error]
- * @param {boolean} [props.required]
- * @param {{ value: string, label: string }[]} [props.options]
- * @param {string} [props.placeholder]
- */
-export const Select = forwardRef(function Select(
-  { label, error, required, options = [], placeholder, className, id, ...props },
-  ref
-) {
-  const selectId = id || `select-${Math.random().toString(36).slice(2, 9)}`;
+export function Select({
+  label,
+  value,
+  onValueChange,
+  options = [],
+  placeholder = 'Select...',
+  error,
+  hint,
+  disabled = false,
+  className = '',
+  id,
+}) {
+  const selectId = id || (label ? `select-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="w-full space-y-1.5 text-left font-mono">
       {label && (
         <label
           htmlFor={selectId}
-          className="text-sm font-medium text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]"
+          className="block text-[10px] uppercase tracking-widest text-[#717171]"
         >
           {label}
-          {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
-      <div className="relative">
-        <select
-          ref={ref}
+
+      <RadixSelect.Root value={value} onValueChange={onValueChange} disabled={disabled}>
+        <RadixSelect.Trigger
           id={selectId}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${selectId}-error` : undefined}
           className={cn(
-            'w-full h-9 rounded-lg border pl-3 pr-9 text-sm appearance-none',
-            'bg-white dark:bg-[var(--color-dark-card)]',
-            'text-[var(--color-ink)] dark:text-[var(--color-dark-ink)]',
-            'border-[var(--color-border)] dark:border-[var(--color-dark-border)]',
-            'focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent',
-            'transition-shadow duration-150',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-red-500 focus:ring-red-400',
+            'w-full h-11 bg-[#161616] text-[#EEEEEE] font-mono text-sm px-3.5 border transition-colors flex items-center justify-between',
+            'border-[#222222] hover:border-[#EEEEEE]/30',
+            'focus:border-[#FE6A00] focus:outline-1 focus:outline-[#FE6A00]',
+            disabled && 'opacity-40 cursor-not-allowed',
+            error && 'border-[#E7000B] hover:border-[#E7000B]',
             className
           )}
-          {...props}
         >
-          {placeholder && (
-            <option value="" disabled>
-              {placeholder}
-            </option>
-          )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          size={15}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-subtle)] pointer-events-none"
-        />
-      </div>
-      {error && (
-        <p id={`${selectId}-error`} className="text-xs text-red-500" role="alert">
-          {error}
-        </p>
-      )}
+          <RadixSelect.Value placeholder={<span className="text-[#717171]/60">{placeholder}</span>} />
+          <RadixSelect.Icon asChild>
+            <ChevronDown size={14} className="text-[#717171]" />
+          </RadixSelect.Icon>
+        </RadixSelect.Trigger>
+
+        <RadixSelect.Portal>
+          <RadixSelect.Content
+            position="popper"
+            sideOffset={4}
+            className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-64 overflow-y-auto bg-[#030303] border border-[#222222] shadow-2xl font-mono"
+          >
+            <RadixSelect.Viewport className="p-1">
+              {options.map((opt) => {
+                const optVal = typeof opt === 'string' ? opt : opt.value;
+                const optLabel = typeof opt === 'string' ? opt : opt.label;
+                return (
+                  <RadixSelect.Item
+                    key={optVal}
+                    value={optVal}
+                    className="relative flex items-center justify-between px-3 py-2 text-xs text-[#EEEEEE] cursor-pointer outline-none select-none hover:bg-[#FE6A00]/10 hover:text-[#FE6A00] focus:bg-[#FE6A00]/10 focus:text-[#FE6A00] data-[state=checked]:text-[#FE6A00]"
+                  >
+                    <RadixSelect.ItemText>{optLabel}</RadixSelect.ItemText>
+                    <RadixSelect.ItemIndicator>
+                      <Check size={12} className="text-[#FE6A00] ml-2" />
+                    </RadixSelect.ItemIndicator>
+                  </RadixSelect.Item>
+                );
+              })}
+            </RadixSelect.Viewport>
+          </RadixSelect.Content>
+        </RadixSelect.Portal>
+      </RadixSelect.Root>
+
+      {error ? (
+        <p className="text-[11px] text-[#F2554F] font-mono tracking-wide">{error}</p>
+      ) : hint ? (
+        <p className="text-[10px] text-[#717171] font-mono">{hint}</p>
+      ) : null}
     </div>
   );
-});
+}
