@@ -54,6 +54,9 @@ export function RegisterPage() {
         confirmPassword: data.confirmPassword,
       }),
     onSuccess: (res) => {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('swan:logged_out');
+      }
       const user = res.data?.data?.user || res.data?.data;
       queryClient.setQueryData(['auth', 'me'], user);
       toast.success('Account created successfully');

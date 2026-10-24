@@ -14,6 +14,9 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
 
+  const isExplicitlyLoggedOut =
+    typeof window !== 'undefined' && sessionStorage.getItem('swan:logged_out') === '1';
+
   const {
     data: user,
     isLoading,
@@ -24,23 +27,36 @@ export function AuthProvider({ children }) {
       const res = await authApi.getMe();
       return res.data.data;
     },
+    enabled: !isExplicitlyLoggedOut,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
   const logout = useCallback(async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('swan:logged_out', '1');
+    }
     try {
       await authApi.logout();
     } catch {
       // Ignore - we clear state regardless
     }
+    await queryClient.cancelQueries({ queryKey: ['auth', 'me'] });
     queryClient.setQueryData(['auth', 'me'], null);
-    queryClient.clear();
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== 'auth',
+    });
   }, [queryClient]);
 
   const handleUnauthorized = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('swan:logged_out', '1');
+    }
+    queryClient.cancelQueries({ queryKey: ['auth', 'me'] });
     queryClient.setQueryData(['auth', 'me'], null);
-    queryClient.clear();
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== 'auth',
+    });
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = `/login?expired=1&from=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     }

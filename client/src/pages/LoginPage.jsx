@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { loginSchema } from '../lib/schemas.js';
-import { DEMO_CREDENTIALS } from '../lib/constants.js';
 import { AuthShell } from '../components/auth/AuthShell.jsx';
 import { HighlightText } from '../components/landing/HighlightText.jsx';
 import { Input } from '../components/ui/Input.jsx';
@@ -51,6 +50,9 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: (data) => authApi.login(data),
     onSuccess: (res) => {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('swan:logged_out');
+      }
       const user = res.data?.data?.user || res.data?.data;
       queryClient.setQueryData(['auth', 'me'], user);
       toast.success('Signed in successfully');
@@ -70,13 +72,6 @@ export function LoginPage() {
     loginMutation.mutate(data);
   };
 
-  const fillDemo = (email, pass) => {
-    setValue('email', email, { shouldValidate: true });
-    setValue('password', pass, { shouldValidate: true });
-    setApiError('');
-  };
-
-  const showDemoBox = import.meta.env.VITE_SHOW_DEMO !== 'false';
 
   return (
     <AuthShell splitWord="WELCOME">
@@ -147,35 +142,7 @@ export function LoginPage() {
           </p>
         </div>
 
-        {/* Demo access */}
-        {showDemoBox && (
-          <div className="border border-[#222222] p-4 bg-[#060606] space-y-3 mt-8">
-            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-[#717171]">
-              <span>Demo access</span>
-              <span>Presets</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillDemo(DEMO_CREDENTIALS.admin.email, DEMO_CREDENTIALS.admin.password)}
-                className="p-2 border border-[#222222] bg-[#121212] hover:border-[#FE6A00] hover:text-[#FE6A00] text-left transition-colors"
-              >
-                <p className="text-[10px] uppercase tracking-wider text-[#FE6A00]">ADMIN</p>
-                <p className="text-[11px] text-[#8A8A8A] truncate">{DEMO_CREDENTIALS.admin.email}</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillDemo(DEMO_CREDENTIALS.sales.email, DEMO_CREDENTIALS.sales.password)}
-                className="p-2 border border-[#222222] bg-[#121212] hover:border-[#FE6A00] hover:text-[#FE6A00] text-left transition-colors"
-              >
-                <p className="text-[10px] uppercase tracking-wider text-[#D4D4D4]">SALES</p>
-                <p className="text-[11px] text-[#8A8A8A] truncate">{DEMO_CREDENTIALS.sales.email}</p>
-              </button>
-            </div>
-          </div>
-        )}
+        
       </div>
     </AuthShell>
   );

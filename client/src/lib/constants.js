@@ -42,16 +42,3 @@ export const STATUS_CONFIG = {
     shape: 'slash',
   },
 };
-
-export const DEMO_CREDENTIALS = {
-  admin: {
-    email: import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@swandigital.io',
-    password: import.meta.env.VITE_DEMO_PASSWORD || 'Admin@1234',
-    role: 'ADMIN',
-  },
-  sales: {
-    email: import.meta.env.VITE_DEMO_SALES_EMAIL || 'priya.sales@swandigital.io',
-    password: import.meta.env.VITE_DEMO_PASSWORD || 'Sales@1234',
-    role: 'SALES',
-  },
-};
