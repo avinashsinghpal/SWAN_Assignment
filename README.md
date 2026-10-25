@@ -188,6 +188,8 @@ JWT_EXPIRES_IN=7d
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=none
 CLIENT_ORIGIN=https://your-frontend-app.vercel.app
+# Secret key required to register administrator accounts:
+ADMIN_SECRET_KEY=swan_admin_secret_key_2026
 ```
 
 ### 3. Verify Database Connection
@@ -196,11 +198,8 @@ Before running the application or seeding data, verify your MongoDB Atlas cluste
 npm run verify:db
 ```
 
-### 4. Seed Realistic Test Data
-Populate the database with realistic leads, audit events, and user accounts:
-```bash
-npm run seed
-```
+### 4. Multi-Admin Registration & Demo Accounts
+The platform supports multiple administrators. Users can choose to register either as a **Sales Operator** or an **Administrator**. To register as an **Administrator**, the user must provide the configured `ADMIN_SECRET_KEY` (`swan_admin_secret_key_2026` by default).
 
 **Pre-seeded Demo Accounts:**
 - **Administrator:** `admin@swandigital.io` / `Admin@1234`

@@ -39,11 +39,25 @@ export const registerSchema = z
       .regex(/[a-z]/, 'Password must contain a lowercase letter')
       .regex(/[0-9]/, 'Password must contain a number'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    role: z.enum(['SALES', 'ADMIN']).default('SALES'),
+    adminSecretKey: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
-  });
+  })
+  .refine(
+    (data) => {
+      if (data.role === 'ADMIN') {
+        return Boolean(data.adminSecretKey && data.adminSecretKey.trim().length > 0);
+      }
+      return true;
+    },
+    {
+      message: 'Admin secret key is required for administrator accounts',
+      path: ['adminSecretKey'],
+    }
+  );
 
 export const leadSchema = z.object({
   name: z.string().trim().min(2, 'Lead name must be at least 2 characters'),
